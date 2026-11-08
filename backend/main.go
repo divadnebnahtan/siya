@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,29 +21,38 @@ func main() {
 	email := os.Getenv("TRACCAR_EMAIL")
 	pw := os.Getenv("TRACCAR_PASSWORD")
 
-	fmt.Println("Go, World!")
-
-	req, err := http.NewRequest("GET", baseUrl+"/devices", nil)
-	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(email+":"+pw)))
-
-	fmt.Println(req.Header.Get("Authorization"))
-
 	client := &http.Client{}
 
+	req, err := http.NewRequest("GET", baseUrl+"/devices", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(email+":"+pw)))
 	resp, err := client.Do(req)
-
 	if err != nil {
 		panic(err)
 	}
 	defer resp.Body.Close()
 
 	fmt.Println(resp.Status, resp.StatusCode)
-	fmt.Println(resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
-	for k, v := range resp.Header {
-		fmt.Println("-", k, ":", v)
-	}
-	fmt.Println(resp.Body)
 	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Println(string(body))
+
+	var devices [](map[string]any)
+	err = json.Unmarshal([]byte(string(body)), &devices)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, device := range devices {
+		fmt.Println("DEVICE")
+		for k, v := range device {
+			fmt.Println("-", k, ":", v)
+		}
+	}
+
 }
