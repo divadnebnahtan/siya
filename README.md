@@ -21,3 +21,23 @@ Advantages
 Disadvantages
 - Requires a server
 - Requires both an app and a website (which can be added as a web app) to function properly. One for sending, one for viewing. There is only hate in my heart for the iOS app store.
+
+# Roadmap
+Backend:
+- [X] get devices list from Traccar API (REST)
+- [X] get positions list from Traccar API (REST)
+- [ ] store live devices/positions in memory
+- [ ] add live updates using Traccar API Websockets
+- [ ] expose API with Chi (REST)
+- [ ] expose live API with SSE/websockets
+- [ ] add Siya users
+- [ ] add Siya authentication
+- [ ] get device history from Traccar API (REST)
+- [ ] add circles
+
+Frontend:
+- [ ] setup SvelteKit environment
+- [ ] connect to backend
+- [ ] display on map
+- [ ] live updates
+- [ ] bells and whistles
