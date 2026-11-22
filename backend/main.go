@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/divadnebnahtan/siya/backend/config"
@@ -14,19 +15,21 @@ func main() {
 
 	traccarClient := traccar.NewClient(env.TraccarBaseUrl, env.GetAuthString())
 
-	// devices := getDevices(client, baseUrl, authStr)
-	// for _, device := range devices {
-	// 	fmt.Println("DEVICE")
-	// 	for k, v := range device {
-	// 		fmt.Println("-", k, ":", v)
-	// 	}
-	// }
+	devices, err := traccarClient.GetDevices(context.Background(), traccar.GetDevicesRequest{})
+	if err != nil {
+		panic(err)
+	}
+	for _, device := range devices {
+		fmt.Println(device)
+	}
 
-	positions := traccarClient.GetPositions()
+	fmt.Println()
+
+	positions, err := traccarClient.GetPositions(context.Background(), traccar.GetPositionsRequest{})
+	if err != nil {
+		panic(err)
+	}
 	for _, position := range positions {
-		fmt.Println("POSITION")
-		for k, v := range position {
-			fmt.Println("-", k, ":", v)
-		}
+		fmt.Println(position, "\n")
 	}
 }
