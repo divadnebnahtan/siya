@@ -28,7 +28,8 @@ func Load() (Environment, error) {
 	}
 
 	lookup := func(key string) string {
-		if value, exists := os.LookupEnv(key); exists {
+		value, exists := os.LookupEnv(key)
+		if exists {
 			return value
 		}
 		return settings[key]
