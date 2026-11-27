@@ -97,6 +97,11 @@ func (c *Client) GetPositions(req GetPositionsRequest) (GetPositionsResponse, er
 	if err != nil {
 		return nil, err
 	}
+	// Traccar returns speed in knots. Convert at the API boundary.
+	const kilometresPerHourPerKnot = 1.852
+	for i := range positions {
+		positions[i].Speed *= kilometresPerHourPerKnot
+	}
 	return positions, nil
 }
 

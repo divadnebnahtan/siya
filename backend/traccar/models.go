@@ -14,22 +14,22 @@ type GetDevicesRequest struct {
 }
 
 type Device struct {
-	ID       int64
-	Name     string
-	UniqueID string
-	Status   string
-	Disabled bool
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	UniqueID string `json:"uniqueId"`
+	Status   string `json:"status"`
+	Disabled bool   `json:"disabled"`
 
-	LastUpdate *time.Time
-	PositionID *int64
-	GroupID    *int64
+	LastUpdate *time.Time `json:"lastUpdate"`
+	PositionID *int64     `json:"positionId"`
+	GroupID    *int64     `json:"groupId"`
 
-	Phone    *string
-	Model    *string
-	Contact  *string
-	Category *string
+	Phone    *string `json:"phone"`
+	Model    *string `json:"model"`
+	Contact  *string `json:"contact"`
+	Category *string `json:"category"`
 
-	Attributes map[string]any
+	Attributes map[string]any `json:"attributes"`
 }
 
 type GetDevicesResponse []Device
@@ -42,25 +42,25 @@ type GetPositionsRequest struct {
 }
 
 type Position struct {
-	ID       int64
-	DeviceID int64
-	Protocol string
+	ID       int64  `json:"id"`
+	DeviceID int64  `json:"deviceId"`
+	Protocol string `json:"protocol"`
 
-	DeviceTime time.Time
-	FixTime    time.Time
-	ServerTime time.Time
+	DeviceTime time.Time `json:"deviceTime"`
+	FixTime    time.Time `json:"fixTime"`
+	ServerTime time.Time `json:"serverTime"`
 
-	Valid     bool
-	Latitude  float64
-	Longitude float64
-	Altitude  float64
-	Speed     float64
-	Course    float64
-	Address   *string
-	Accuracy  float64
+	Valid     bool    `json:"valid"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Altitude  float64 `json:"altitude"`
+	Speed     float64 `json:"speed"`
+	Course    float64 `json:"course"`
+	Address   *string `json:"address"`
+	Accuracy  float64 `json:"accuracy"`
 
-	Network    map[string]any
-	Attributes map[string]any
+	Network    map[string]any `json:"network"`
+	Attributes map[string]any `json:"attributes"`
 }
 
 type GetPositionsResponse []Position
