@@ -21,13 +21,14 @@ type Client struct {
 func NewClient(baseURL, token string) (*Client, error) {
 	parsed, err := url.Parse(baseURL)
 	if err != nil {
-		// The parse error includes the input, which may contain credentials.
 		return nil, errors.New("invalid Traccar base URL")
 	}
+
 	if (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" ||
 		parsed.User != nil || parsed.Opaque != "" || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" {
 		return nil, errors.New("base URL for Traccar must be an absolute HTTP(S) URL without credentials, query, or fragment")
 	}
+
 	for i := range len(token) {
 		if token[i] < ' ' && token[i] != '\t' || token[i] == 0x7f {
 			return nil, errors.New("invalid Traccar authorization header")
@@ -69,7 +70,8 @@ func (c *Client) GetDevices(req GetDevicesRequest) (GetDevicesResponse, error) {
 	}
 
 	var devices GetDevicesResponse
-	if err := c.get("/devices", values, &devices); err != nil {
+	err := c.get("/devices", values, &devices)
+	if err != nil {
 		return nil, err
 	}
 	return devices, nil
@@ -91,7 +93,8 @@ func (c *Client) GetPositions(req GetPositionsRequest) (GetPositionsResponse, er
 	}
 
 	var positions GetPositionsResponse
-	if err := c.get("/positions", values, &positions); err != nil {
+	err := c.get("/positions", values, &positions)
+	if err != nil {
 		return nil, err
 	}
 	return positions, nil
@@ -103,7 +106,8 @@ func (c *Client) get(route string, query url.Values, out any) error {
 	}
 
 	endpoint := c.baseURL + route
-	if encoded := query.Encode(); encoded != "" {
+	encoded := query.Encode()
+	if encoded != "" {
 		endpoint += "?" + encoded
 	}
 	request, err := http.NewRequest(http.MethodGet, endpoint, nil)
@@ -129,7 +133,9 @@ func (c *Client) get(route string, query url.Values, out any) error {
 		statusErr := &HTTPError{StatusCode: response.StatusCode, Status: response.Status, Body: string(body)}
 		return fmt.Errorf("unexpected status for Traccar GET %s: %w", route, statusErr)
 	}
-	if err := json.Unmarshal(body, out); err != nil {
+
+	err = json.Unmarshal(body, out)
+	if err != nil {
 		return fmt.Errorf("decode Traccar GET %s response: %w", route, err)
 	}
 	return nil
