@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -12,14 +13,14 @@ import (
 )
 
 func main() {
-	err := run()
+	err := run(os.Stdout)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run() error {
+func run(out io.Writer) error {
 	env, err := config.Load()
 	if err != nil {
 		return err
@@ -35,7 +36,7 @@ func run() error {
 		return err
 	}
 	locations, _ := store.Snapshot()
-	return json.NewEncoder(os.Stdout).Encode(locations)
+	return json.NewEncoder(out).Encode(locations)
 }
 
 func refreshLocations(client *traccar.Client, store *state.Store) error {
