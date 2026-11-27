@@ -1,8 +1,9 @@
 package traccar
 
 import (
-	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,15 +18,30 @@ type Client struct {
 	httpClient *http.Client
 }
 
-func NewClient(baseURL, token string) *Client {
+func NewClient(baseURL, token string) (*Client, error) {
+	parsed, err := url.Parse(baseURL)
+	if err != nil {
+		// The parse error includes the input, which may contain credentials.
+		return nil, errors.New("invalid Traccar base URL")
+	}
+	if (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" ||
+		parsed.User != nil || parsed.Opaque != "" || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" {
+		return nil, errors.New("base URL for Traccar must be an absolute HTTP(S) URL without credentials, query, or fragment")
+	}
+	for i := range len(token) {
+		if token[i] < ' ' && token[i] != '\t' || token[i] == 0x7f {
+			return nil, errors.New("invalid Traccar authorization header")
+		}
+	}
+
 	return &Client{
 		baseURL:    baseURL,
 		token:      token,
 		httpClient: &http.Client{},
-	}
+	}, nil
 }
 
-func (c *Client) GetDevices(ctx context.Context, req GetDevicesRequest) (GetDevicesResponse, error) {
+func (c *Client) GetDevices(req GetDevicesRequest) (GetDevicesResponse, error) {
 	values := make(url.Values)
 	if req.All != nil {
 		values.Set("all", strconv.FormatBool(*req.All))
@@ -34,8 +50,6 @@ func (c *Client) GetDevices(ctx context.Context, req GetDevicesRequest) (GetDevi
 		values.Set("userId", strconv.FormatInt(*req.UserID, 10))
 	}
 	if len(req.IDs) > 0 {
-		values.Set(" ย", "")
-		values.Del(" ย")
 		values.Set("id", joinInt64(req.IDs))
 	}
 	if len(req.UniqueIDs) > 0 {
@@ -55,13 +69,13 @@ func (c *Client) GetDevices(ctx context.Context, req GetDevicesRequest) (GetDevi
 	}
 
 	var devices GetDevicesResponse
-	if err := c.get(ctx, "/devices", values, &devices); err != nil {
+	if err := c.get("/devices", values, &devices); err != nil {
 		return nil, err
 	}
 	return devices, nil
 }
 
-func (c *Client) GetPositions(ctx context.Context, req GetPositionsRequest) (GetPositionsResponse, error) {
+func (c *Client) GetPositions(req GetPositionsRequest) (GetPositionsResponse, error) {
 	values := make(url.Values)
 	if req.DeviceID != nil {
 		values.Set("deviceId", strconv.FormatInt(*req.DeviceID, 10))
@@ -77,16 +91,25 @@ func (c *Client) GetPositions(ctx context.Context, req GetPositionsRequest) (Get
 	}
 
 	var positions GetPositionsResponse
-	if err := c.get(ctx, "/positions", values, &positions); err != nil {
+	if err := c.get("/positions", values, &positions); err != nil {
 		return nil, err
 	}
 	return positions, nil
 }
 
-func (c *Client) get(ctx context.Context, route string, query url.Values, out any) error {
-	endpoint := c.baseURL + route
+func (c *Client) get(route string, query url.Values, out any) error {
+	if c == nil || c.httpClient == nil || c.baseURL == "" {
+		return errors.New("uninitialized Traccar client")
+	}
 
-	request, _ := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	endpoint := c.baseURL + route
+	if encoded := query.Encode(); encoded != "" {
+		endpoint += "?" + encoded
+	}
+	request, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("build Traccar GET %s: %w", route, err)
+	}
 	request.Header.Set("Accept", "application/json")
 	if c.token != "" {
 		request.Header.Set("Authorization", c.token)
@@ -94,28 +117,33 @@ func (c *Client) get(ctx context.Context, route string, query url.Values, out an
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return err
+		return fmt.Errorf("send Traccar GET %s: %w", route, err)
 	}
 	defer response.Body.Close()
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("read Traccar GET %s response: %w", route, err)
 	}
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return &httpError{statusCode: response.StatusCode, status: response.Status, body: string(body)}
+		statusErr := &HTTPError{StatusCode: response.StatusCode, Status: response.Status, Body: string(body)}
+		return fmt.Errorf("unexpected status for Traccar GET %s: %w", route, statusErr)
 	}
-	return json.Unmarshal(body, out)
+	if err := json.Unmarshal(body, out); err != nil {
+		return fmt.Errorf("decode Traccar GET %s response: %w", route, err)
+	}
+	return nil
 }
 
-type httpError struct {
-	statusCode int
-	status     string
-	body       string
+// HTTPError describes a non-success response from Traccar.
+type HTTPError struct {
+	StatusCode int
+	Status     string
+	Body       string
 }
 
-func (e *httpError) Error() string {
-	return e.status
+func (e *HTTPError) Error() string {
+	return e.Status
 }
 
 func joinInt64(values []int64) string {
